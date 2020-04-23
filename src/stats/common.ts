@@ -72,6 +72,8 @@ export type ConversionType = PlayerIndexedType & DurationType & DamageType & {
 export type ComboType = PlayerIndexedType & DurationType & DamageType & {
   moves: MoveLandedType[];
   didKill: boolean;
+  interactiveOpponent: boolean | null;
+  opponentInputs: boolean[];
 };
 
 export type ActionCountsType = PlayerIndexedType & {
@@ -213,4 +215,11 @@ export function calcDamageTaken(frame: PostFrameUpdateType, prevFrame: PostFrame
   const prevPercent = _.get(prevFrame, 'percent', 0);
 
   return percent - prevPercent;
+}
+
+export function isInputting(frame: PreFrameUpdateType, prevFrame: PreFrameUpdateType): boolean {
+  const inputKeys = ['buttons', 'joystickX', 'joystickY', 'cStickX', 'cStickY', 'trigger'];
+  const currentInputs = _.pick(frame, inputKeys);
+  const prevInputs = _.pick(prevFrame, inputKeys);
+  return !_.isEqual(currentInputs, prevInputs);
 }

@@ -1,9 +1,9 @@
 import _ from 'lodash';
-import { PostFrameUpdateType } from "../utils/slpReader";
+import { PostFrameUpdateType, PreFrameUpdateType } from "../utils/slpReader";
 import { FrameEntryType, FramesType, MoveLandedType, ComboType, PlayerIndexedType } from "./common";
 import {
   isDamaged, isGrabbed, calcDamageTaken, isTeching, didLoseStock,
-  Timers, isDown, isDead
+  Timers, isDown, isDead, isInputting
 } from "./common";
 import { StatComputer } from './stats';
 
@@ -91,6 +91,8 @@ function handleComboCompute(frames: FramesType, state: ComboState, indices: Play
         endPercent: null,
         moves: [],
         didKill: false,
+        interactiveOpponent: null,
+        opponentInputs: [],
       };
 
       combos.push(state.combo);
@@ -125,6 +127,17 @@ function handleComboCompute(frames: FramesType, state: ComboState, indices: Play
     // The rest of the function handles combo termination logic, so if we don't
     // have a combo started, there is no need to continue
     return;
+  } else {
+    // Handle checking if the opponent is actively playing
+    const opponentPreFrame: PreFrameUpdateType = frame.players[indices.opponentIndex].pre;
+
+    // FIXME: use type PostFrameUpdateType instead of any
+    // This is because the default value {} should not be casted as a type of PostFrameUpdateType
+    const prevOpponentPreFrame: any = _.get(
+      frames, [playerFrame.frame - 1, 'players', indices.opponentIndex, 'pre'], {}
+    );
+    const opntIsInputting = isInputting(opponentPreFrame, prevOpponentPreFrame);
+    state.combo.opponentInputs.push(opntIsInputting);
   }
 
   const opntIsTeching = isTeching(opponentFrame.actionStateId);
@@ -161,7 +174,7 @@ function handleComboCompute(frames: FramesType, state: ComboState, indices: Play
   if (shouldTerminate) {
     state.combo.endFrame = playerFrame.frame;
     state.combo.endPercent = prevOpponentFrame.percent || 0;
-
+    state.combo.interactiveOpponent = !_.every(state.combo.opponentInputs, (val) => !val);
     state.combo = null;
     state.move = null;
   }
