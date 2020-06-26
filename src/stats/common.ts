@@ -27,6 +27,7 @@ export type StatsType = {
   combos: ComboType[];
   actionCounts: ActionCountsType[];
   overall: OverallType[];
+  winningPlayerIndex: number;
 };
 
 export type RatioType = {

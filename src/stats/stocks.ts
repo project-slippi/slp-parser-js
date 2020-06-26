@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 import { FrameEntryType, FramesType, isDead, didLoseStock, PlayerIndexedType, StockType } from "./common";
 import { StatComputer } from './stats';
+import { PostFrameUpdateType } from '../utils/slpReader';
 
 interface StockState {
   stock: StockType | null | undefined;
@@ -38,10 +39,10 @@ export class StockComputer implements StatComputer<StockType[]> {
 
 function handleStockCompute(frames: FramesType, state: StockState, indices: PlayerIndexedType, frame: FrameEntryType, stocks: StockType[]): void {
   const playerFrame = frame.players[indices.playerIndex].post;
-  // FIXME: use PostFrameUpdateType instead of any
-  const prevPlayerFrame: any = _.get(
+  
+  const prevPlayerFrame: PostFrameUpdateType = _.get(
     frames, [playerFrame.frame - 1, 'players', indices.playerIndex, 'post'], {}
-  );
+  ) as PostFrameUpdateType;
 
   // If there is currently no active stock, wait until the player is no longer spawning.
   // Once the player is no longer spawning, start the stock

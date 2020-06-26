@@ -32,6 +32,7 @@ export function generateOverallStats(
     const conversions = _.get(conversionsByPlayer, playerIndex) || [];
     const successfulConversions = conversions.filter(conversion => conversion.moves.length > 1);
     const opponentStocks = _.get(stocksByPlayer, opponentIndex) || [];
+    const playerStocks = _.get(stocksByPlayer, playerIndex) || [];
     const opponentEndedStocks = _.filter(opponentStocks, 'endFrame');
 
     const conversionCount = conversions.length;

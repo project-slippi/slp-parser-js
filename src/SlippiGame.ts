@@ -13,7 +13,8 @@ import { SlpParser } from './utils/slpParser';
 import {
   StockComputer, ComboComputer, ActionsComputer, ConversionComputer, InputComputer, Stats,
   FrameEntryType, FramesType, StatsType, getSinglesPlayerPermutationsFromSettings,
-  generateOverallStats
+  generateOverallStats,
+  StockType
 } from './stats';
 
 /**
@@ -147,6 +148,7 @@ export class SlippiGame {
       actionCounts: this.actionsComputer.fetch(),
       overall: overall,
       gameComplete: this.parser.getGameEnd() !== null,
+      winningPlayerIndex: this.determineWinningPlayerIndex(stocks)
     };
 
     if (this.parser.getGameEnd() !== null) {
@@ -158,6 +160,31 @@ export class SlippiGame {
     }
 
     return stats;
+  }
+
+  public determineWinningPlayerIndex(stocks: StockType[]): number {
+    if (stocks.length == 0) return -1;
+    
+    var playerIndexOccurences: Array<{playerIndex: number, count: number, lastPercent: number}> = [];
+
+    stocks.forEach(stockType => {
+      if(!playerIndexOccurences.some(occurences => occurences.playerIndex === stockType.playerIndex)){
+        playerIndexOccurences.push({playerIndex: stockType.playerIndex, count: 0, lastPercent: 0});
+      }
+
+      var occurence = playerIndexOccurences.find(occurence => occurence.playerIndex == stockType.playerIndex);
+      occurence.count++;
+      occurence.lastPercent = stockType.endPercent;
+    });
+
+    var sortedByOccurence = _.sortBy(playerIndexOccurences, occurence => occurence.count);
+    var mostOccurences = sortedByOccurence[sortedByOccurence.length - 1];
+
+    var matchingOccurences = sortedByOccurence.filter(occurence => occurence.count == mostOccurences.count);
+    if (matchingOccurences.length == 1) return mostOccurences.playerIndex;
+
+    var sortedByPercent = _.sortBy(playerIndexOccurences, occurence => occurence.lastPercent);
+    return sortedByPercent[sortedByPercent.length - 1].playerIndex;
   }
 
   public getMetadata(): MetadataType {
