@@ -11,6 +11,11 @@ export const UnknownMove: Move = {
 };
 
 const moves: { [id: number]: Move } = {
+  0: {
+    id: 0,
+    name: "Grab",
+    shortName: "grab",
+  },
   1: {
     // This includes all thrown items, zair, luigi's taunt, samus bombs, etc
     id: 1,
