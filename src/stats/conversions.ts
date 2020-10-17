@@ -139,6 +139,16 @@ function handleConversionCompute(
         openingType: "unknown", // Will be updated later
       };
 
+      if (opntIsGrabbed) {
+        state.move = {
+          frame: playerFrame.frame,
+          moveId: 0,
+          hitCount: 0,
+          damage: 0,
+        };
+        state.conversion.moves.push(state.move);
+      }
+
       conversions.push(state.conversion);
     }
 
