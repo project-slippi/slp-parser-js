@@ -3,18 +3,18 @@ import _ from "lodash";
 import fs from "fs";
 import { SlippiGame } from "../src";
 
-it("should correctly return game settings", () => {
+it("should correctly return game settings", async () => {
   const game = new SlippiGame("slp/sheik_vs_ics_yoshis.slp");
-  const settings = game.getSettings();
+  const settings = await game.getSettings();
   expect(settings.stageId).toBe(8);
   expect(_.first(settings.players).characterId).toBe(0x13);
   expect(_.last(settings.players).characterId).toBe(0xe);
   expect(settings.slpVersion).toBe("0.1.0");
 });
 
-it("should correctly return stats", () => {
+it("should correctly return stats", async () => {
   const game = new SlippiGame("slp/test.slp");
-  const stats = game.getStats();
+  const stats = await game.getStats();
   expect(stats.lastFrame).toBe(3694);
 
   // Test stocks
@@ -39,58 +39,58 @@ it("should correctly return stats", () => {
   expect(stats.overall[0].inputCount).toBe(494);
 });
 
-it("should correctly return metadata", () => {
+it("should correctly return metadata", async () => {
   const game = new SlippiGame("slp/test.slp");
-  const metadata = game.getMetadata();
+  const metadata = await game.getMetadata();
   expect(metadata.startAt).toBe("2017-12-18T21:14:14Z");
   expect(metadata.playedOn).toBe("dolphin");
 });
 
-it("should be able to read incomplete SLP files", () => {
+it("should be able to read incomplete SLP files", async () => {
   const game = new SlippiGame("slp/incomplete.slp");
-  const settings = game.getSettings();
+  const settings = await game.getSettings();
   expect(settings.players.length).toBe(2);
-  game.getMetadata();
-  game.getStats();
+  await game.getMetadata();
+  await game.getStats();
 });
 
-it("should be able to read nametags", () => {
+it("should be able to read nametags", async () => {
   const game = new SlippiGame("slp/nametags.slp");
-  const settings = game.getSettings();
+  const settings = await game.getSettings();
   expect(settings.players[0].nametag).toBe("AMNイ");
   expect(settings.players[1].nametag).toBe("");
 
   const game2 = new SlippiGame("slp/nametags2.slp");
-  const settings2 = game2.getSettings();
+  const settings2 = await game2.getSettings();
   expect(settings2.players[0].nametag).toBe("A1=$");
   expect(settings2.players[1].nametag).toBe("か、9@");
 
   const game3 = new SlippiGame("slp/nametags3.slp");
-  const settings3 = game3.getSettings();
+  const settings3 = await game3.getSettings();
   expect(settings3.players[0].nametag).toBe("B  R");
   expect(settings3.players[1].nametag).toBe(".  。");
 });
 
-it("should support PAL version", () => {
+it("should support PAL version", async () => {
   const palGame = new SlippiGame("slp/pal.slp");
   const ntscGame = new SlippiGame("slp/ntsc.slp");
 
-  expect(palGame.getSettings().isPAL).toBe(true);
-  expect(ntscGame.getSettings().isPAL).toBe(false);
+  expect((await palGame.getSettings()).isPAL).toBe(true);
+  expect((await ntscGame.getSettings()).isPAL).toBe(false);
 });
 
-it("should correctly distinguish between different controller fixes", () => {
+it("should correctly distinguish between different controller fixes", async () => {
   const game = new SlippiGame("slp/controllerFixes.slp");
-  const settings = game.getSettings();
+  const settings = await game.getSettings();
   expect(settings.players[0].controllerFix).toBe("Dween");
   expect(settings.players[1].controllerFix).toBe("UCF");
   expect(settings.players[2].controllerFix).toBe("None");
 });
 
-it("should be able to support reading from a buffer input", () => {
+it("should be able to support reading from a buffer input", async () => {
   const buf = fs.readFileSync("slp/sheik_vs_ics_yoshis.slp");
   const game = new SlippiGame(buf);
-  const settings = game.getSettings();
+  const settings = await game.getSettings();
   expect(settings.stageId).toBe(8);
   expect(_.first(settings.players).characterId).toBe(0x13);
   expect(_.last(settings.players).characterId).toBe(0xe);
@@ -98,7 +98,7 @@ it("should be able to support reading from a buffer input", () => {
 
 it.skip("should support item information extraction", () => {
   // const game = new SlippiGame("slp/itemExport.slp");
-  // const frames = game.getFrames();
+  // const frames = await game.getFrames();
   // TODO: Add test
   // const multiItemFrames = _.filter(frames, frame => {
   //   const items = _.get(frame, 'items') || [];
@@ -121,7 +121,7 @@ it.skip("should support item information extraction", () => {
   // console.log(frames[429].items);
 });
 
-it("should support realtime parsing", () => {
+it("should support realtime parsing", async () => {
   const fullData = fs.readFileSync("slp/realtimeTest.slp");
   const buf = Buffer.alloc(100e6); // Allocate 100 MB of space
   const game = new SlippiGame(buf);
@@ -129,13 +129,13 @@ it("should support realtime parsing", () => {
   let data,
     copyPos = 0;
 
-  const getData = () => ({
-    settings: game.getSettings(),
-    frames: game.getFrames(),
-    metadata: game.getMetadata(),
-    gameEnd: game.getGameEnd(),
-    stats: game.getStats(),
-    latestFrame: game.getLatestFrame(),
+  const getData = async () => ({
+    settings: await game.getSettings(),
+    frames: await game.getFrames(),
+    metadata: await game.getMetadata(),
+    gameEnd: await game.getGameEnd(),
+    stats: await game.getStats(),
+    latestFrame: await game.getLatestFrame(),
   });
 
   const copyBuf = (len: number): void => {
@@ -144,28 +144,28 @@ it("should support realtime parsing", () => {
   };
 
   // Test results with empty buffer
-  data = getData();
+  data = await getData();
   expect(data.settings).toBe(null);
 
   // Add the header and 0x35 command to buffer
   copyBuf(0x1d);
-  data = getData();
+  data = await getData();
 
   // Copy settings
   copyBuf(0x1a3);
-  data = getData();
+  data = await getData();
   expect(data.settings.stageId).toBe(8);
 
   // Copy first 3 frames
   copyBuf(0xe8 * 3);
-  data = getData();
+  data = await getData();
   expect(_.size(data.frames)).toBe(3);
   expect(data.latestFrame.frame).toBe(-122); // Eventually this should be -121
   expect(data.stats.stocks[1].endFrame).toBe(null);
 
   // Load the rest of the game data
   copyBuf(0x8271b);
-  data = getData();
+  data = await getData();
   expect(_.size(data.frames)).toBe(2306);
   expect(data.stats.lastFrame).toBe(2182);
   expect(data.gameEnd.gameEndMethod).toBe(7);
@@ -174,7 +174,7 @@ it("should support realtime parsing", () => {
 
   // Load metadata
   copyBuf(0xa7);
-  data = getData();
+  data = await getData();
   expect(data.metadata.playedOn).toBe("network");
 });
 

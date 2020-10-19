@@ -1,17 +1,17 @@
 import { SlippiGame } from "../src";
 
 describe("when parsing doubles games", () => {
-  it("should correctly handle when players are eliminated", () => {
+  it("should correctly handle when players are eliminated", async () => {
     const game = new SlippiGame("slp/doubles.slp");
-    const settings = game.getSettings();
-    const metadata = game.getMetadata();
+    const settings = await game.getSettings();
+    const metadata = await game.getMetadata();
     expect(settings.players.length).toBe(4);
     const p1ElimFrame = 7754;
     const p1StockStealFrame = 7783;
     const p1ElimFrame2 = 8236;
     const gameEndFrame = metadata.lastFrame;
 
-    const frames = game.getFrames();
+    const frames = await game.getFrames();
     // Check that p1 still has a frame when they get eliminated
     expect(frames[p1ElimFrame].players[0]).toBeTruthy();
 

@@ -40,14 +40,24 @@ export interface SlpBufferSourceRef {
   buffer: Buffer;
 }
 
-function getRef(input: SlpReadInput): SlpRefType {
+async function getRef(input: SlpReadInput): Promise<SlpRefType> {
   switch (input.source) {
     case SlpInputSource.FILE:
-      const fd = fs.openSync(input.filePath, "r");
-      return {
-        source: input.source,
-        fileDescriptor: fd,
-      } as SlpFileSourceRef;
+      return new Promise(
+        (resolve: (value: SlpRefType) => void, reject: (reason: NodeJS.ErrnoException) => void): void => {
+          fs.open(input.filePath, "r", (err, fd) => {
+            if (!!err) {
+              reject(err);
+            } else {
+              const ref = {
+                source: input.source,
+                fileDescriptor: fd,
+              } as SlpFileSourceRef;
+              resolve(ref);
+            }
+          });
+        },
+      );
     case SlpInputSource.BUFFER:
       return {
         source: input.source,
@@ -58,10 +68,31 @@ function getRef(input: SlpReadInput): SlpRefType {
   }
 }
 
-function readRef(ref: SlpRefType, buffer: Uint8Array, offset: number, length: number, position: number): number {
+async function readRef(
+  ref: SlpRefType,
+  buffer: Uint8Array,
+  offset: number,
+  length: number,
+  position: number,
+): Promise<number> {
   switch (ref.source) {
     case SlpInputSource.FILE:
-      return fs.readSync((ref as SlpFileSourceRef).fileDescriptor, buffer, offset, length, position);
+      return new Promise((resolve: (value: number) => void, reject: (reason: NodeJS.ErrnoException) => void): void => {
+        fs.read(
+          (ref as SlpFileSourceRef).fileDescriptor,
+          buffer,
+          offset,
+          length,
+          position,
+          (err: NodeJS.ErrnoException, bytesRead: number) => {
+            if (!!err) {
+              reject(err);
+            } else {
+              resolve(bytesRead);
+            }
+          },
+        );
+      });
     case SlpInputSource.BUFFER:
       return (ref as SlpBufferSourceRef).buffer.copy(buffer, offset, position, position + length);
     default:
@@ -69,11 +100,18 @@ function readRef(ref: SlpRefType, buffer: Uint8Array, offset: number, length: nu
   }
 }
 
-function getLenRef(ref: SlpRefType): number {
+async function getLenRef(ref: SlpRefType): Promise<number> {
   switch (ref.source) {
     case SlpInputSource.FILE:
-      const fileStats = fs.fstatSync((ref as SlpFileSourceRef).fileDescriptor);
-      return fileStats.size;
+      return new Promise((resolve: (value: number) => void, reject: (reason: NodeJS.ErrnoException) => void): void => {
+        return fs.fstat((ref as SlpFileSourceRef).fileDescriptor, (err, fileStats) => {
+          if (!!err) {
+            reject(err);
+          } else {
+            resolve(fileStats.size);
+          }
+        });
+      });
     case SlpInputSource.BUFFER:
       return (ref as SlpBufferSourceRef).buffer.length;
     default:
@@ -84,14 +122,14 @@ function getLenRef(ref: SlpRefType): number {
 /**
  * Opens a file at path
  */
-export function openSlpFile(input: SlpReadInput): SlpFileType {
-  const ref = getRef(input);
+export async function openSlpFile(input: SlpReadInput): Promise<SlpFileType> {
+  const ref = await getRef(input);
 
-  const rawDataPosition = getRawDataPosition(ref);
-  const rawDataLength = getRawDataLength(ref, rawDataPosition);
+  const rawDataPosition = await getRawDataPosition(ref);
+  const rawDataLength = await getRawDataLength(ref, rawDataPosition);
   const metadataPosition = rawDataPosition + rawDataLength + 10; // remove metadata string
-  const metadataLength = getMetadataLength(ref, metadataPosition);
-  const messageSizes = getMessageSizes(ref, rawDataPosition);
+  const metadataLength = await getMetadataLength(ref, metadataPosition);
+  const messageSizes = await getMessageSizes(ref, rawDataPosition);
 
   return {
     ref: ref,
@@ -103,18 +141,26 @@ export function openSlpFile(input: SlpReadInput): SlpFileType {
   };
 }
 
-export function closeSlpFile(file: SlpFileType): void {
+export async function closeSlpFile(file: SlpFileType): Promise<void> {
   switch (file.ref.source) {
     case SlpInputSource.FILE:
-      fs.closeSync((file.ref as SlpFileSourceRef).fileDescriptor);
+      return new Promise((resolve: (value: void) => void, reject: (reason: NodeJS.ErrnoException) => void): void => {
+        fs.close((file.ref as SlpFileSourceRef).fileDescriptor, (err) => {
+          if (!!err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
       break;
   }
 }
 
 // This function gets the position where the raw data starts
-function getRawDataPosition(ref: SlpRefType): number {
+async function getRawDataPosition(ref: SlpRefType): Promise<number> {
   const buffer = new Uint8Array(1);
-  readRef(ref, buffer, 0, buffer.length, 0);
+  await readRef(ref, buffer, 0, buffer.length, 0);
 
   if (buffer[0] === 0x36) {
     return 0;
@@ -127,14 +173,14 @@ function getRawDataPosition(ref: SlpRefType): number {
   return 15;
 }
 
-function getRawDataLength(ref: SlpRefType, position: number): number {
-  const fileSize = getLenRef(ref);
+async function getRawDataLength(ref: SlpRefType, position: number): Promise<number> {
+  const fileSize = await getLenRef(ref);
   if (position === 0) {
     return fileSize;
   }
 
   const buffer = new Uint8Array(4);
-  readRef(ref, buffer, 0, buffer.length, position - 4);
+  await readRef(ref, buffer, 0, buffer.length, position - 4);
 
   const rawDataLen = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
   if (rawDataLen > 0) {
@@ -148,17 +194,17 @@ function getRawDataLength(ref: SlpRefType, position: number): number {
   return fileSize - position;
 }
 
-function getMetadataLength(ref: SlpRefType, position: number): number {
-  const len = getLenRef(ref);
+async function getMetadataLength(ref: SlpRefType, position: number): Promise<number> {
+  const len = await getLenRef(ref);
   return len - position - 1;
 }
 
-function getMessageSizes(
+async function getMessageSizes(
   ref: SlpRefType,
   position: number,
-): {
+): Promise<{
   [command: number]: number;
-} {
+}> {
   const messageSizes: {
     [command: number]: number;
   } = {};
@@ -172,7 +218,7 @@ function getMessageSizes(
   }
 
   const buffer = new Uint8Array(2);
-  readRef(ref, buffer, 0, buffer.length, position);
+  await readRef(ref, buffer, 0, buffer.length, position);
   if (buffer[0] !== Command.MESSAGE_SIZES) {
     return {};
   }
@@ -181,7 +227,7 @@ function getMessageSizes(
   messageSizes[0x35] = payloadLength;
 
   const messageSizesBuffer = new Uint8Array(payloadLength - 1);
-  readRef(ref, messageSizesBuffer, 0, messageSizesBuffer.length, position + 2);
+  await readRef(ref, messageSizesBuffer, 0, messageSizesBuffer.length, position + 2);
   for (let i = 0; i < payloadLength - 1; i += 3) {
     const command = messageSizesBuffer[i];
 
@@ -195,11 +241,11 @@ function getMessageSizes(
 /**
  * Iterates through slp events and parses payloads
  */
-export function iterateEvents(
+export async function iterateEvents(
   slpFile: SlpFileType,
   callback: EventCallbackFunc,
   startPos: number | null = null,
-): number {
+): Promise<number> {
   const ref = slpFile.ref;
 
   let readPosition = startPos || slpFile.rawDataPosition;
@@ -210,7 +256,7 @@ export function iterateEvents(
 
   const commandByteBuffer = new Uint8Array(1);
   while (readPosition < stopReadingAt) {
-    readRef(ref, commandByteBuffer, 0, 1, readPosition);
+    await readRef(ref, commandByteBuffer, 0, 1, readPosition);
     const commandByte = commandByteBuffer[0];
     const buffer = commandPayloadBuffers[commandByte];
     if (buffer === undefined) {
@@ -222,7 +268,7 @@ export function iterateEvents(
       return readPosition;
     }
 
-    readRef(ref, buffer, 0, buffer.length, readPosition);
+    await readRef(ref, buffer, 0, buffer.length, readPosition);
     const parsedPayload = parseMessage(commandByte, buffer);
     const shouldStop = callback(commandByte, parsedPayload);
     if (shouldStop) {
@@ -416,7 +462,7 @@ function readBool(view: DataView, offset: number): boolean | null {
   return !!view.getUint8(offset);
 }
 
-export function getMetadata(slpFile: SlpFileType): MetadataType | null {
+export async function getMetadata(slpFile: SlpFileType): Promise<MetadataType | null> {
   if (slpFile.metadataLength <= 0) {
     // This will happen on a severed incomplete file
     // $FlowFixMe
@@ -425,7 +471,7 @@ export function getMetadata(slpFile: SlpFileType): MetadataType | null {
 
   const buffer = new Uint8Array(slpFile.metadataLength);
 
-  readRef(slpFile.ref, buffer, 0, buffer.length, slpFile.metadataPosition);
+  await readRef(slpFile.ref, buffer, 0, buffer.length, slpFile.metadataPosition);
 
   let metadata = null;
   try {

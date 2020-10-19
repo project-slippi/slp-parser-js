@@ -69,13 +69,13 @@ export class SlippiGame {
     });
   }
 
-  private _process(settingsOnly = false): void {
+  private async _process(settingsOnly = false): Promise<void> {
     if (this.parser.getGameEnd() !== null) {
       return;
     }
-    const slpfile = openSlpFile(this.input);
+    const slpfile = await openSlpFile(this.input);
     // Generate settings from iterating through file
-    this.readPosition = iterateEvents(
+    this.readPosition = await iterateEvents(
       slpfile,
       (command, payload) => {
         if (!payload) {
@@ -88,40 +88,40 @@ export class SlippiGame {
       },
       this.readPosition,
     );
-    closeSlpFile(slpfile);
+    await closeSlpFile(slpfile);
   }
 
   /**
    * Gets the game settings, these are the settings that describe the starting state of
    * the game such as characters, stage, etc.
    */
-  public getSettings(): GameStartType {
+  public async getSettings(): Promise<GameStartType> {
     // Settings is only complete after post-frame update
-    this._process(true);
+    await this._process(true);
     return this.parser.getSettings();
   }
 
-  public getLatestFrame(): FrameEntryType | null {
-    this._process();
+  public async getLatestFrame(): Promise<FrameEntryType | null> {
+    await this._process();
     return this.parser.getLatestFrame();
   }
 
-  public getGameEnd(): GameEndType | null {
-    this._process();
+  public async getGameEnd(): Promise<GameEndType | null> {
+    await this._process();
     return this.parser.getGameEnd();
   }
 
-  public getFrames(): FramesType {
-    this._process();
+  public async getFrames(): Promise<FramesType> {
+    await this._process();
     return this.parser.getFrames();
   }
 
-  public getStats(): StatsType {
+  public async getStats(): Promise<StatsType> {
     if (this.finalStats) {
       return this.finalStats;
     }
 
-    this._process();
+    await this._process();
 
     // Finish processing if we're not up to date
     this.statsComputer.process();
@@ -154,13 +154,13 @@ export class SlippiGame {
     return stats;
   }
 
-  public getMetadata(): MetadataType {
+  public async getMetadata(): Promise<MetadataType> {
     if (this.metadata) {
       return this.metadata;
     }
-    const slpfile = openSlpFile(this.input);
-    this.metadata = getMetadata(slpfile);
-    closeSlpFile(slpfile);
+    const slpfile = await openSlpFile(this.input);
+    this.metadata = await getMetadata(slpfile);
+    await closeSlpFile(slpfile);
     return this.metadata;
   }
 

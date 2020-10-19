@@ -14,7 +14,7 @@ const watcher = chokidar.watch(listenPath, {
 });
 
 const gameByPath = {};
-watcher.on("change", (path) => {
+watcher.on("change", async (path) => {
   const start = Date.now();
 
   let gameState, settings, stats, frames, latestFrame, gameEnd;
@@ -35,16 +35,16 @@ watcher.on("change", (path) => {
 
     gameState = _.get(gameByPath, [path, "state"]);
 
-    settings = game.getSettings();
+    settings = await game.getSettings();
 
     // You can uncomment the stats calculation below to get complex stats in real-time. The problem
     // is that these calculations have not been made to operate only on new data yet so as
     // the game gets longer, the calculation will take longer and longer
-    // stats = game.getStats();
+    // stats = await game.getStats();
 
-    frames = game.getFrames();
-    latestFrame = game.getLatestFrame();
-    gameEnd = game.getGameEnd();
+    frames = await game.getFrames();
+    latestFrame = await game.getLatestFrame();
+    gameEnd = await game.getGameEnd();
   } catch (err) {
     console.log(err);
     return;

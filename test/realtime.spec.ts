@@ -29,7 +29,7 @@ describe("when reading last finalised frame from SlpStream", () => {
 
     // The game mode should be online
     const game = new SlippiGame(testFile);
-    const settings = game.getSettings();
+    const settings = await game.getSettings();
     expect(settings.gameMode).toEqual(GameMode.ONLINE);
 
     stream.on(SlpStreamEvent.COMMAND, (data: SlpCommandEventPayload) => {
@@ -60,7 +60,7 @@ describe("when reading last finalised frame from SlpStream", () => {
     await pipeFileContents(testFile, stream);
 
     // The last finalized frame should be the same as what's recorded in the metadata
-    const metadata = game.getMetadata();
+    const metadata = await game.getMetadata();
     expect(metadata.lastFrame).toEqual(lastFinalizedFrame);
   });
 });
@@ -95,9 +95,9 @@ describe("when reading finalised frames from SlpParser", () => {
 
     // The last finalized frame should be the same as what's recorded in the metadata
     const game = new SlippiGame(testFile);
-    const metadata = game.getMetadata();
+    const metadata = await game.getMetadata();
     expect(metadata).toBeDefined();
-    const lastFrame = metadata.lastFrame || game.getLatestFrame().frame;
+    const lastFrame = metadata.lastFrame || (await game.getLatestFrame()).frame;
     expect(lastFrame).toEqual(lastFinalizedFrame);
   });
 
@@ -129,7 +129,7 @@ describe("when reading finalised frames from SlpParser", () => {
 
     // The last finalized frame should be the same as what's recorded in the metadata
     const game = new SlippiGame(testFile);
-    const metadata = game.getMetadata();
+    const metadata = await game.getMetadata();
     expect(metadata.lastFrame).toEqual(lastFinalizedFrame);
   });
 });
