@@ -134,11 +134,11 @@ describe("when reading finalised frames from SlpParser", () => {
   });
 });
 
-const pipeFileContents = async (filename: string, destination: Writable, options?: any): Promise<void> => {
+const pipeFileContents = async (filename: string, destination: Writable): Promise<void> => {
   return new Promise((resolve): void => {
     const readStream = fs.createReadStream(filename);
     readStream.on("open", () => {
-      readStream.pipe(destination, options);
+      readStream.pipe(destination);
     });
     readStream.on("close", () => {
       resolve();

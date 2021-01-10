@@ -2,7 +2,7 @@
 import _ from "lodash";
 
 import { isDead, didLoseStock, PlayerIndexedType, StockType } from "./common";
-import { FrameEntryType, FramesType } from "../types";
+import { FrameEntryType, FramesType, PostFrameUpdateType } from "../types";
 import { StatComputer } from "./stats";
 
 interface StockState {
@@ -44,8 +44,12 @@ function handleStockCompute(
   stocks: StockType[],
 ): void {
   const playerFrame = frame.players[indices.playerIndex].post;
-  // FIXME: use PostFrameUpdateType instead of any
-  const prevPlayerFrame: any = _.get(frames, [playerFrame.frame - 1, "players", indices.playerIndex, "post"], {});
+  const prevPlayerFrame: PostFrameUpdateType = _.get(frames, [
+    playerFrame.frame - 1,
+    "players",
+    indices.playerIndex,
+    "post",
+  ]);
 
   // If there is currently no active stock, wait until the player is no longer spawning.
   // Once the player is no longer spawning, start the stock

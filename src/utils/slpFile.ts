@@ -10,7 +10,13 @@ const DEFAULT_NICKNAME = "unknown";
 export interface SlpFileMetadata {
   startTime: Moment;
   lastFrame: number;
-  players: any;
+  players: {
+    [playerIndex: number]: {
+      characterUsage: {
+        [internalCharacterId: number]: number;
+      };
+    };
+  };
   consoleNickname?: string;
 }
 
@@ -111,17 +117,17 @@ export class SlpFile extends Writable {
         this.metadata.lastFrame = frame;
 
         // Update character usage
-        const prevPlayer = get(this.metadata, ["players", `${playerIndex}`]) || {};
-        const characterUsage = prevPlayer.characterUsage || {};
-        const curCharFrames = characterUsage[internalCharacterId] || 0;
+        const characterUsage: {
+          [internalCharacterId: number]: number;
+        } = get(this.metadata, ["players", playerIndex, "characterUsage"]);
+        const curCharFrames = get(characterUsage, internalCharacterId, 0);
         const player = {
-          ...prevPlayer,
           characterUsage: {
             ...characterUsage,
             [internalCharacterId]: curCharFrames + 1,
           },
         };
-        this.metadata.players[`${playerIndex}`] = player;
+        this.metadata.players[playerIndex] = player;
         break;
     }
   }

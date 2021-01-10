@@ -96,14 +96,6 @@ function didStartLedgegrab(currentAnimation: State, previousAnimation: State): b
 
 function handleActionCompute(state: PlayerActionState, indices: PlayerIndexedType, frame: FrameEntryType): void {
   const playerFrame = frame.players[indices.playerIndex].post;
-  const incrementCount = (field: string, condition: boolean): void => {
-    if (!condition) {
-      return;
-    }
-
-    // FIXME: ActionsCountsType should be a map of actions -> number, instead of accessing the field via string
-    (state.playerCounts as any)[field] += 1;
-  };
 
   // Manage animation state
   state.animations.push(playerFrame.actionStateId);
@@ -114,23 +106,25 @@ function handleActionCompute(state: PlayerActionState, indices: PlayerIndexedTyp
   const prevAnimation = last3Frames[last3Frames.length - 2];
 
   // Increment counts based on conditions
-  const didDashDance = _.isEqual(last3Frames, dashDanceAnimations);
-  incrementCount("dashDanceCount", didDashDance);
-
-  const didRoll = didStartRoll(currentAnimation, prevAnimation);
-  incrementCount("rollCount", didRoll);
-
-  const didSpotDodge = didStartSpotDodge(currentAnimation, prevAnimation);
-  incrementCount("spotDodgeCount", didSpotDodge);
-
-  const didAirDodge = didStartAirDodge(currentAnimation, prevAnimation);
-  incrementCount("airDodgeCount", didAirDodge);
-
-  const didGrabLedge = didStartLedgegrab(currentAnimation, prevAnimation);
-  incrementCount("ledgegrabCount", didGrabLedge);
+  const playerCounts = state.playerCounts;
+  if (_.isEqual(last3Frames, dashDanceAnimations)) {
+    playerCounts.dashDanceCount++;
+  }
+  if (didStartRoll(currentAnimation, prevAnimation)) {
+    playerCounts.rollCount++;
+  }
+  if (didStartSpotDodge(currentAnimation, prevAnimation)) {
+    playerCounts.spotDodgeCount++;
+  }
+  if (didStartAirDodge(currentAnimation, prevAnimation)) {
+    playerCounts.airDodgeCount++;
+  }
+  if (didStartLedgegrab(currentAnimation, prevAnimation)) {
+    playerCounts.ledgegrabCount++;
+  }
 
   // Handles wavedash detection (and waveland)
-  handleActionWavedash(state.playerCounts, state.animations);
+  handleActionWavedash(playerCounts, state.animations);
 }
 
 function handleActionWavedash(counts: ActionCountsType, animations: State[]): void {

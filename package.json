@@ -22,7 +22,7 @@
     "test": "jest --verbose",
     "coverage": "yarn run test -- --coverage",
     "postcoverage": "open-cli coverage/lcov-report/index.html",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\" \"test/*.ts\"",
     "lint:fix": "yarn run lint --fix",
     "clean": "rimraf dist",
     "prebuild": "yarn run clean",

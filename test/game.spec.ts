@@ -1,7 +1,7 @@
 import _ from "lodash";
 // import path from 'path';
 import fs from "fs";
-import { SlippiGame } from "../src";
+import { FrameEntryType, FramesType, GameEndType, GameStartType, MetadataType, SlippiGame, StatsType } from "../src";
 
 it("should correctly return game settings", () => {
   const game = new SlippiGame("slp/sheik_vs_ics_yoshis.slp");
@@ -34,6 +34,10 @@ it("should correctly return stats", () => {
   expect(stats.actionCounts[0].wavedashCount).toBe(16);
   expect(stats.actionCounts[0].wavelandCount).toBe(1);
   expect(stats.actionCounts[0].airDodgeCount).toBe(3);
+  expect(stats.actionCounts[0].dashDanceCount).toBe(39);
+  expect(stats.actionCounts[0].spotDodgeCount).toBe(0);
+  expect(stats.actionCounts[0].ledgegrabCount).toBe(1);
+  expect(stats.actionCounts[0].rollCount).toBe(0);
 
   // Test overall
   expect(stats.overall[0].inputCounts.total).toBe(494);
@@ -82,7 +86,6 @@ it("should be able to read netplay names and codes", () => {
 
 it("should be able to read console nickname", () => {
   const game = new SlippiGame("slp/realtimeTest.slp");
-  const metadata = game.getMetadata().consoleNick;
   expect(game.getMetadata().consoleNick).toBe("Day 1");
 });
 
@@ -119,7 +122,14 @@ it("should support realtime parsing", () => {
   let data,
     copyPos = 0;
 
-  const getData = () => ({
+  const getData = (): {
+    settings: GameStartType;
+    frames: FramesType;
+    metadata: MetadataType;
+    gameEnd: GameEndType | null;
+    stats: StatsType;
+    latestFrame: FrameEntryType | null;
+  } => ({
     settings: game.getSettings(),
     frames: game.getFrames(),
     metadata: game.getMetadata(),

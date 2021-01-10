@@ -49,13 +49,19 @@ function handleComboCompute(
   combos: ComboType[],
 ): void {
   const playerFrame: PostFrameUpdateType = frame.players[indices.playerIndex].post;
-  // FIXME: use type PostFrameUpdateType instead of any
-  // This is because the default value {} should not be casted as a type of PostFrameUpdateType
-  const prevPlayerFrame: any = _.get(frames, [playerFrame.frame - 1, "players", indices.playerIndex, "post"], {});
+  const prevPlayerFrame: PostFrameUpdateType = _.get(frames, [
+    playerFrame.frame - 1,
+    "players",
+    indices.playerIndex,
+    "post",
+  ]);
   const opponentFrame: PostFrameUpdateType = frame.players[indices.opponentIndex].post;
-  // FIXME: use type PostFrameUpdateType instead of any
-  // This is because the default value {} should not be casted as a type of PostFrameUpdateType
-  const prevOpponentFrame: any = _.get(frames, [playerFrame.frame - 1, "players", indices.opponentIndex, "post"], {});
+  const prevOpponentFrame: PostFrameUpdateType = _.get(frames, [
+    playerFrame.frame - 1,
+    "players",
+    indices.opponentIndex,
+    "post",
+  ]);
 
   const opntIsDamaged = isDamaged(opponentFrame.actionStateId);
   const opntIsGrabbed = isGrabbed(opponentFrame.actionStateId);
@@ -69,7 +75,7 @@ function handleComboCompute(
   // null and null < null = false
   const actionChangedSinceHit = playerFrame.actionStateId !== state.lastHitAnimation;
   const actionCounter = playerFrame.actionStateCounter;
-  const prevActionCounter = prevPlayerFrame.actionStateCounter;
+  const prevActionCounter = _.get(prevPlayerFrame, "actionStateCounter");
   const actionFrameCounterReset = actionCounter < prevActionCounter;
   if (actionChangedSinceHit || actionFrameCounterReset) {
     state.lastHitAnimation = null;
@@ -84,7 +90,7 @@ function handleComboCompute(
         opponentIndex: indices.opponentIndex,
         startFrame: playerFrame.frame,
         endFrame: null,
-        startPercent: prevOpponentFrame.percent || 0,
+        startPercent: _.get(prevOpponentFrame, "percent", 0),
         currentPercent: opponentFrame.percent || 0,
         endPercent: null,
         moves: [],
@@ -115,7 +121,7 @@ function handleComboCompute(
 
       // Store previous frame animation to consider the case of a trade, the previous
       // frame should always be the move that actually connected... I hope
-      state.lastHitAnimation = prevPlayerFrame.actionStateId;
+      state.lastHitAnimation = _.get(prevPlayerFrame, "actionStateId");
     }
   }
 
@@ -158,7 +164,7 @@ function handleComboCompute(
   // If combo should terminate, mark the end states and add it to list
   if (shouldTerminate) {
     state.combo.endFrame = playerFrame.frame;
-    state.combo.endPercent = prevOpponentFrame.percent || 0;
+    state.combo.endPercent = _.get(prevOpponentFrame, "percent", 0);
 
     state.combo = null;
     state.move = null;
