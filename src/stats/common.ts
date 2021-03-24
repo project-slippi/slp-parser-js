@@ -77,6 +77,13 @@ export interface InputCountsType {
   total: number;
 }
 
+export interface AnalogMotionType {
+  distanceTraveled: number;
+  metersTraveled: number;
+  analogMotionFrameCount: number;
+  averageVelocity: RatioType;
+}
+
 export interface OverallType extends PlayerIndexedType {
   inputCounts: InputCountsType;
   conversionCount: number;
@@ -85,6 +92,7 @@ export interface OverallType extends PlayerIndexedType {
   successfulConversions: RatioType;
   inputsPerMinute: RatioType;
   digitalInputsPerMinute: RatioType;
+  joystickMotion: AnalogMotionType;
   openingsPerKill: RatioType;
   damagePerOpening: RatioType;
   neutralWinRatio: RatioType;
