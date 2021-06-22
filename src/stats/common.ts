@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-import { GameStartType, PostFrameUpdateType } from "../types";
+import { PostFrameUpdateType } from "../types";
 
 export interface StatsType {
   gameComplete: boolean;
@@ -17,11 +17,6 @@ export interface RatioType {
   count: number;
   total: number;
   ratio: number | null;
-}
-
-export interface PlayerIndexedType {
-  playerIndex: number;
-  opponentIndex: number;
 }
 
 export interface DurationType {
@@ -195,30 +190,19 @@ export const Timers = {
   COMBO_STRING_RESET_FRAMES: 45,
 };
 
-export function getSinglesPlayerPermutationsFromSettings(settings: GameStartType): PlayerIndexedType[] {
-  if (!settings || settings.players.length !== 2) {
-    // Only return opponent indices for singles
-    return [];
-  }
-
-  return [
-    {
-      playerIndex: settings.players[0].playerIndex,
-      opponentIndex: settings.players[1].playerIndex,
-    },
-    {
-      playerIndex: settings.players[1].playerIndex,
-      opponentIndex: settings.players[0].playerIndex,
-    },
-  ];
-}
-
-export function didLoseStock(frame: PostFrameUpdateType, prevFrame: PostFrameUpdateType): boolean {
+export function didLoseStock(
+  frame: PostFrameUpdateType | undefined,
+  prevFrame: PostFrameUpdateType | undefined,
+): boolean {
   if (!frame || !prevFrame) {
     return false;
   }
 
-  return prevFrame.stocksRemaining! - frame.stocksRemaining! > 0;
+  if (prevFrame.stocksRemaining === null || frame.stocksRemaining === null) {
+    return false;
+  }
+
+  return prevFrame.stocksRemaining - frame.stocksRemaining > 0;
 }
 
 export function isInControl(state: number): boolean {

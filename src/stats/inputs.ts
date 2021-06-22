@@ -1,7 +1,6 @@
 import _ from "lodash";
 
 import { FrameEntryType, Frames, FramesType, GameStartType } from "../types";
-import { getSinglesPlayerPermutationsFromSettings, PlayerIndexedType } from "./common";
 import { StatComputer } from "./stats";
 
 enum JoystickRegion {
@@ -18,7 +17,6 @@ enum JoystickRegion {
 
 export interface PlayerInput {
   playerIndex: number;
-  opponentIndex: number;
   inputCount: number;
   joystickInputCount: number;
   cstickInputCount: number;
@@ -27,33 +25,32 @@ export interface PlayerInput {
 }
 
 export class InputComputer implements StatComputer<PlayerInput[]> {
-  private state = new Map<PlayerIndexedType, PlayerInput>();
-  private playerPermutations = new Array<PlayerIndexedType>();
+  private playerIndices: number[] = [];
+  private state = new Map<number, PlayerInput>();
 
   public setup(settings: GameStartType): void {
-    // Reset the state
+    // Reset the state since it's a new game
+    this.playerIndices = settings.players.map((p) => p.playerIndex);
     this.state = new Map();
-    this.playerPermutations = getSinglesPlayerPermutationsFromSettings(settings);
 
-    this.playerPermutations.forEach((indices) => {
+    this.playerIndices.forEach((index) => {
       const playerState: PlayerInput = {
-        playerIndex: indices.playerIndex,
-        opponentIndex: indices.opponentIndex,
+        playerIndex: index,
         inputCount: 0,
         joystickInputCount: 0,
         cstickInputCount: 0,
         buttonInputCount: 0,
         triggerInputCount: 0,
       };
-      this.state.set(indices, playerState);
+      this.state.set(index, playerState);
     });
   }
 
   public processFrame(frame: FrameEntryType, allFrames: FramesType): void {
-    this.playerPermutations.forEach((indices) => {
-      const state = this.state.get(indices);
+    this.playerIndices.forEach((index) => {
+      const state = this.state.get(index);
       if (state) {
-        handleInputCompute(allFrames, state, indices, frame);
+        handleInputCompute(allFrames, state, index, frame);
       }
     });
   }
@@ -63,16 +60,11 @@ export class InputComputer implements StatComputer<PlayerInput[]> {
   }
 }
 
-function handleInputCompute(
-  frames: FramesType,
-  state: PlayerInput,
-  indices: PlayerIndexedType,
-  frame: FrameEntryType,
-): void {
-  const playerFrame = frame.players[indices.playerIndex]!.pre;
+function handleInputCompute(frames: FramesType, state: PlayerInput, playerIndex: number, frame: FrameEntryType): void {
+  const playerFrame = frame.players[playerIndex]!.pre;
   const currentFrameNumber = playerFrame.frame!;
   const prevFrameNumber = currentFrameNumber - 1;
-  const prevPlayerFrame = frames[prevFrameNumber] ? frames[prevFrameNumber].players[indices.playerIndex]!.pre : null;
+  const prevPlayerFrame = frames[prevFrameNumber] ? frames[prevFrameNumber].players[playerIndex]!.pre : null;
 
   if (currentFrameNumber < Frames.FIRST_PLAYABLE || !prevPlayerFrame) {
     // Don't count inputs until the game actually starts
