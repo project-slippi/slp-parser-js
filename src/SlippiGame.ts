@@ -32,7 +32,7 @@ export class SlippiGame {
   private inputComputer: InputComputer = new InputComputer();
   private statsComputer: Stats;
 
-  public constructor(input: string | Buffer, opts?: StatOptions) {
+  public constructor(input: string | Buffer | ArrayBuffer, opts?: StatOptions) {
     if (_.isString(input)) {
       this.input = {
         source: SlpInputSource.FILE,
@@ -42,6 +42,11 @@ export class SlippiGame {
       this.input = {
         source: SlpInputSource.BUFFER,
         buffer: input,
+      };
+    } else if (input instanceof ArrayBuffer) {
+      this.input = {
+        source: SlpInputSource.BUFFER,
+        buffer: Buffer.from(input),
       };
     } else {
       throw new Error("Cannot create SlippiGame with input of that type");

@@ -119,6 +119,16 @@ it("should be able to support reading from a buffer input", () => {
   expect(_.last(settings.players).characterId).toBe(0xe);
 });
 
+it("should be able to support reading from an array buffer input", () => {
+  const buf = fs.readFileSync("slp/sheik_vs_ics_yoshis.slp");
+  const arrayBuf = buf.buffer;
+  const game = new SlippiGame(arrayBuf);
+  const settings = game.getSettings();
+  expect(settings.stageId).toBe(8);
+  expect(_.first(settings.players).characterId).toBe(0x13);
+  expect(_.last(settings.players).characterId).toBe(0xe);
+});
+
 it("should support realtime parsing", () => {
   const fullData = fs.readFileSync("slp/realtimeTest.slp");
   const buf = Buffer.alloc(100e6); // Allocate 100 MB of space
